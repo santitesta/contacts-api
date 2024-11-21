@@ -16,6 +16,7 @@ import {
   ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiOperation,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { Contact } from './entities/contact.entity';
@@ -26,20 +27,30 @@ export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new contact' })
   @ApiCreatedResponse({
     description: 'The contact has been successfully created.',
     type: Contact,
   })
   @ApiBadRequestResponse({
-    description: 'Validation or database error',
+    description: 'Validation error or database constraint violation',
     content: {
       'application/json': {
         example: {
           statusCode: 400,
-          message: 'Email already exists.',
-          error: 'Bad Request',
+          message: 'Duplicate entry detected for "email".',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+    content: {
+      'application/json': {
+        example: {
+          statusCode: 500,
+          message: 'Internal server error.',
         },
       },
     },

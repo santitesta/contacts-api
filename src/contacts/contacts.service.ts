@@ -13,17 +13,8 @@ export class ContactsService {
   ) {}
 
   async create(createContactDto: CreateContactDto): Promise<Contact> {
-    try {
-      const contact = this.contactRepository.create(createContactDto);
-      return await this.contactRepository.save(contact);
-    } catch (error) {
-      console.log('error: ', error);
-      console.log('code: ', error.code);
-      if (error.code === '23505') {
-        throw new BadRequestException('Email already exists.');
-      }
-      throw new BadRequestException('Failed to create contact.');
-    }
+    const contact = this.contactRepository.create(createContactDto);
+    return await this.contactRepository.save(contact);
   }
 
   findAll() {
