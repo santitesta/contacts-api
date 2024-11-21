@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,8 +13,17 @@ export class ContactsService {
   ) {}
 
   async create(createContactDto: CreateContactDto): Promise<Contact> {
-    const contact = this.contactRepository.create(createContactDto);
-    return await this.contactRepository.save(contact);
+    try {
+      const contact = this.contactRepository.create(createContactDto);
+      return await this.contactRepository.save(contact);
+    } catch (error) {
+      console.log('error: ', error);
+      console.log('code: ', error.code);
+      if (error.code === '23505') {
+        throw new BadRequestException('Email already exists.');
+      }
+      throw new BadRequestException('Failed to create contact.');
+    }
   }
 
   findAll() {
