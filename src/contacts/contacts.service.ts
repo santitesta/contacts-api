@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -17,19 +17,36 @@ export class ContactsService {
     return await this.contactRepository.save(contact);
   }
 
-  findAll() {
-    return `This action returns all contacts`;
+  async findAll(): Promise<Contact[]> {
+    return await this.contactRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} contact`;
+  async findOne(id: number): Promise<Contact> {
+    const contact = await this.contactRepository.findOne({ where: { id } });
+    if (!contact) {
+      throw new NotFoundException(`Contact with id ${id} not found`);
+    }
+    return contact;
   }
 
-  update(id: number, _updateContactDto: UpdateContactDto) {
-    return `This action updates a #${id} contact`;
+  async update(
+    id: number,
+    updateContactDto: UpdateContactDto,
+  ): Promise<Contact> {
+    const contact = await this.contactRepository.preload({
+      id,
+      ...updateContactDto,
+    });
+    if (!contact) {
+      throw new NotFoundException(`Contact with id ${id} not found`);
+    }
+    return await this.contactRepository.save(contact);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} contact`;
+  async remove(id: number): Promise<void> {
+    const result = await this.contactRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Contact with id ${id} not found`);
+    }
   }
 }
