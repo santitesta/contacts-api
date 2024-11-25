@@ -31,7 +31,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
     // Handle TypeORM Query Errors
     else if (exception instanceof QueryFailedError) {
-      status = HttpStatus.BAD_REQUEST; // Adjust as needed
+      status = HttpStatus.BAD_REQUEST;
       message = this.handleDatabaseError(exception);
     }
     // Handle Other Exceptions

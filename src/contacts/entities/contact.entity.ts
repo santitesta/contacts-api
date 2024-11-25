@@ -37,14 +37,13 @@ export class Contact {
   birthdate: Date;
 
   @ApiProperty({ description: 'Work phone number', example: '1234567890' })
-  @Column()
+  @Column({ unique: true })
   workPhone: string;
 
   @ApiProperty({ description: 'Personal phone number', example: '0987654321' })
-  @Column()
+  @Column({ unique: true })
   personalPhone: string;
 
-  // Address fields
   @ApiProperty({ description: 'Street address', example: '123 Main St' })
   @Column()
   street: string;

@@ -60,12 +60,15 @@ export class ContactsService {
     if (email) {
       where.push({ email });
     }
+
     if (phoneNumber) {
-      where.push({ workPhone: phoneNumber }, { personalPhone: phoneNumber });
+      where.push({ workPhone: phoneNumber });
+      where.push({ personalPhone: phoneNumber });
     }
 
-    // Execute the query
-    const results = await this.contactRepository.find({ where });
+    const results = await this.contactRepository.find({
+      where: where.length > 1 ? where : where[0],
+    });
 
     if (results.length === 0) {
       throw new NotFoundException('No contact found with the given criteria.');
