@@ -1,13 +1,22 @@
-import { BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { Repository } from 'typeorm';
 import { Contact } from './entities/contact.entity';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
+const mockRepository = () => ({
+  create: jest.fn(),
+  save: jest.fn(),
+  find: jest.fn(),
+  findOne: jest.fn(),
+  preload: jest.fn(),
+  delete: jest.fn(),
+});
+
 describe('ContactsService', () => {
   let service: ContactsService;
-  let repository: Repository<Contact>;
+  let repository: jest.Mocked<Repository<Contact>>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -15,13 +24,15 @@ describe('ContactsService', () => {
         ContactsService,
         {
           provide: getRepositoryToken(Contact),
-          useClass: Repository,
+          useFactory: mockRepository,
         },
       ],
     }).compile();
 
     service = module.get<ContactsService>(ContactsService);
-    repository = module.get<Repository<Contact>>(getRepositoryToken(Contact));
+    repository = module.get(getRepositoryToken(Contact)) as jest.Mocked<
+      Repository<Contact>
+    >;
   });
 
   it('should be defined', () => {
@@ -38,19 +49,23 @@ describe('ContactsService', () => {
         birthdate: '1990-01-01',
         workPhone: '1234567890',
         personalPhone: '0987654321',
-        address: '123 Main St',
+        street: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        postalCode: '10001',
+        country: 'USA',
       };
 
       const savedContact = {
-        ...createContactDto,
         id: 1,
-        birthdate: new Date(createContactDto.birthdate),
+        ...createContactDto,
+        birthdate: new Date('1990-01-01'), // Convert birthdate string to Date object
       };
 
-      jest.spyOn(repository, 'create').mockReturnValue(savedContact as any);
-      jest.spyOn(repository, 'save').mockResolvedValue(savedContact);
+      repository.create.mockReturnValue(savedContact);
+      repository.save.mockResolvedValue(savedContact);
 
-      const result = await service.create(createContactDto as any);
+      const result = await service.create(createContactDto);
       expect(result).toEqual(savedContact);
 
       expect(repository.create).toHaveBeenCalledWith(createContactDto);
@@ -66,27 +81,102 @@ describe('ContactsService', () => {
         birthdate: '1985-05-15',
         workPhone: '1112223333',
         personalPhone: '4445556666',
-        address: '456 Tech St',
+        street: '456 Tech St',
+        city: 'New York',
+        state: 'NY',
+        postalCode: '10001',
+        country: 'USA',
       };
 
-      // Mock `repository.create` to return a valid object
-      jest.spyOn(repository, 'create').mockReturnValue(createContactDto as any);
-
-      // Simulate unique constraint violation (PostgreSQL code: 23505)
+      // Simulate a unique constraint violation (e.g., PostgreSQL error code '23505')
       const dbError = {
         code: '23505',
         detail: 'Key (email)=(jane.doe@example.com) already exists.',
+        name: 'QueryFailedError',
+        message:
+          'duplicate key value violates unique constraint "contact_email_key"',
       };
-      jest.spyOn(repository, 'save').mockRejectedValue(dbError);
 
-      // Expect the service to throw the database error (to be handled by the filter)
-      await expect(service.create(createContactDto as any)).rejects.toEqual(
-        dbError,
-      );
+      repository.create.mockReturnValue(createContactDto as any);
+      repository.save.mockRejectedValue(dbError);
 
-      // Verify repository methods were called
+      await expect(service.create(createContactDto)).rejects.toEqual(dbError);
+
       expect(repository.create).toHaveBeenCalledWith(createContactDto);
-      expect(repository.save).toHaveBeenCalled();
+      expect(repository.save).toHaveBeenCalledWith(createContactDto);
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return an array of contacts', async () => {
+      const contacts = [{ id: 1, name: 'John Doe' } as Contact];
+      repository.find.mockResolvedValue(contacts);
+
+      const result = await service.findAll();
+      expect(result).toEqual(contacts);
+      expect(repository.find).toHaveBeenCalled();
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a contact if found', async () => {
+      const contact = { id: 1, name: 'John Doe' } as Contact;
+      repository.findOne.mockResolvedValue(contact);
+
+      const result = await service.findOne(1);
+      expect(result).toEqual(contact);
+      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+    });
+
+    it('should throw NotFoundException if contact not found', async () => {
+      repository.findOne.mockResolvedValue(undefined);
+
+      await expect(service.findOne(1)).rejects.toThrow(NotFoundException);
+      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+    });
+  });
+
+  describe('update', () => {
+    it('should update and return the contact if found', async () => {
+      const updateContactDto = {
+        company: 'Updated Company',
+        email: 'updated.email@example.com',
+      };
+      const contact = { id: 1, ...updateContactDto } as Contact;
+
+      repository.preload.mockResolvedValue(contact);
+      repository.save.mockResolvedValue(contact);
+
+      const result = await service.update(1, updateContactDto);
+      expect(result).toEqual(contact);
+      expect(repository.preload).toHaveBeenCalledWith({
+        id: 1,
+        ...updateContactDto,
+      });
+      expect(repository.save).toHaveBeenCalledWith(contact);
+    });
+
+    it('should throw NotFoundException if contact not found', async () => {
+      repository.preload.mockResolvedValue(undefined);
+
+      await expect(service.update(1, {})).rejects.toThrow(NotFoundException);
+      expect(repository.preload).toHaveBeenCalledWith({ id: 1 });
+    });
+  });
+
+  describe('remove', () => {
+    it('should delete the contact if found', async () => {
+      repository.delete.mockResolvedValue({ affected: 1, raw: true });
+
+      await service.remove(1);
+      expect(repository.delete).toHaveBeenCalledWith(1);
+    });
+
+    it('should throw NotFoundException if contact not found', async () => {
+      repository.delete.mockResolvedValue({ affected: 0, raw: true });
+
+      await expect(service.remove(1)).rejects.toThrow(NotFoundException);
+      expect(repository.delete).toHaveBeenCalledWith(1);
     });
   });
 });
