@@ -213,6 +213,25 @@ export class ContactsController {
     return this.contactsService.filter(filterContactDto);
   }
 
+  @Get('birthdays')
+  @ApiOperation({
+    summary: 'Get contacts with birthdays today or within the current month',
+    description:
+      'Returns a list of contacts whose birthdate is today or falls within the current month.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of contacts with upcoming or current month birthdays.',
+    type: [Contact],
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+  })
+  async getBirthdays(): Promise<Contact[]> {
+    return this.contactsService.getBirthdaysThisMonth();
+  }
+
   @Get(':id')
   @ApiParam({
     name: 'id',

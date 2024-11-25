@@ -6,6 +6,8 @@ import { Contact } from './entities/contact.entity';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { SearchContactDto } from './dto/search-contact.dto';
 import { FilterContactDto } from './dto/filter-contact.dto';
+import dayjs from 'dayjs';
+import { getMonth } from 'date-fns';
 
 @Injectable()
 export class ContactsService {
@@ -98,5 +100,17 @@ export class ContactsService {
     }
 
     return results;
+  }
+
+  async getBirthdaysThisMonth(): Promise<Contact[]> {
+    const today = new Date();
+    const currentMonth = getMonth(today) + 1; // `getMonth` is 0-indexed, so add 1
+
+    return this.contactRepository
+      .createQueryBuilder('contact')
+      .where('EXTRACT(MONTH FROM contact.birthdate) = :month', {
+        month: currentMonth,
+      })
+      .getMany();
   }
 }
