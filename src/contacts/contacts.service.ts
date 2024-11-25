@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -6,7 +6,6 @@ import { Contact } from './entities/contact.entity';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { SearchContactDto } from './dto/search-contact.dto';
 import { FilterContactDto } from './dto/filter-contact.dto';
-import dayjs from 'dayjs';
 import { getMonth } from 'date-fns';
 
 @Injectable()

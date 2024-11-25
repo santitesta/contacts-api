@@ -10,6 +10,7 @@ import {
   NotFoundException,
   BadRequestException,
   Query,
+  Inject,
 } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { CreateContactDto } from './dto/create-contact.dto';
@@ -28,11 +29,17 @@ import { Contact } from './entities/contact.entity';
 import { IdParamDto } from './dto/id-param.dto';
 import { SearchContactDto } from './dto/search-contact.dto';
 import { FilterContactDto } from './dto/filter-contact.dto';
+import { CacheKey, CacheTTL } from '@nestjs/cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @ApiTags('contacts')
 @Controller()
 export class ContactsController {
-  constructor(private readonly contactsService: ContactsService) {}
+  constructor(
+    private readonly contactsService: ContactsService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new contact' })
@@ -228,8 +235,19 @@ export class ContactsController {
     status: 500,
     description: 'Internal server error',
   })
+  @CacheKey('birthdays') // Set a specific key for caching
   async getBirthdays(): Promise<Contact[]> {
-    return this.contactsService.getBirthdaysThisMonth();
+    const cachedData = await this.cacheManager.get<Contact[]>('birthdays');
+
+    if (cachedData?.length) {
+      return cachedData;
+    }
+
+    const birthdays = await this.contactsService.getBirthdaysThisMonth();
+
+    await this.cacheManager.set('birthdays', birthdays, 3600);
+
+    return birthdays;
   }
 
   @Get(':id')

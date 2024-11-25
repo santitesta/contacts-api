@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ContactsModule } from './contacts/contacts.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
