@@ -41,7 +41,23 @@ export class CreateContactDto {
   @IsString()
   personalPhone: string;
 
-  @ApiProperty({ description: 'Full address', example: '123 Main St' })
+  @ApiProperty({ description: 'Street address', example: '123 Main St' })
   @IsString()
-  address: string;
+  street: string;
+
+  @ApiProperty({ description: 'City', example: 'New York' })
+  @IsString()
+  city: string;
+
+  @ApiProperty({ description: 'State', example: 'NY' })
+  @IsString()
+  state: string;
+
+  @ApiProperty({ description: 'Postal code', example: '10001' })
+  @IsString()
+  postalCode: string;
+
+  @ApiProperty({ description: 'Country', example: 'USA' })
+  @IsString()
+  country: string;
 }

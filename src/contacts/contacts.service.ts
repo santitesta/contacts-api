@@ -3,7 +3,9 @@ import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Contact } from './entities/contact.entity';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
+import { SearchContactDto } from './dto/search-contact.dto';
+import { FilterContactDto } from './dto/filter-contact.dto';
 
 @Injectable()
 export class ContactsService {
@@ -48,5 +50,50 @@ export class ContactsService {
     if (result.affected === 0) {
       throw new NotFoundException(`Contact with id ${id} not found`);
     }
+  }
+
+  async search(criteria: SearchContactDto): Promise<Contact[]> {
+    const { email, phoneNumber } = criteria;
+
+    const where: FindOptionsWhere<Contact>[] = [];
+
+    if (email) {
+      where.push({ email });
+    }
+    if (phoneNumber) {
+      where.push({ workPhone: phoneNumber }, { personalPhone: phoneNumber });
+    }
+
+    // Execute the query
+    const results = await this.contactRepository.find({ where });
+
+    if (results.length === 0) {
+      throw new NotFoundException('No contact found with the given criteria.');
+    }
+
+    return results;
+  }
+
+  async filter(criteria: FilterContactDto): Promise<Contact[]> {
+    const { state, city } = criteria;
+
+    const where: FindOptionsWhere<Contact> = {};
+
+    if (state) {
+      where.state = state;
+    }
+    if (city) {
+      where.city = city;
+    }
+
+    const results = await this.contactRepository.find({ where });
+
+    if (results.length === 0) {
+      throw new NotFoundException(
+        'No contacts found for the given state or city.',
+      );
+    }
+
+    return results;
   }
 }

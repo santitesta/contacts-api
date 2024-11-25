@@ -8,6 +8,8 @@ import {
   Delete,
   HttpCode,
   NotFoundException,
+  BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { CreateContactDto } from './dto/create-contact.dto';
@@ -18,11 +20,14 @@ import {
   ApiNotFoundResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { Contact } from './entities/contact.entity';
 import { IdParamDto } from './dto/id-param.dto';
+import { SearchContactDto } from './dto/search-contact.dto';
+import { FilterContactDto } from './dto/filter-contact.dto';
 
 @ApiTags('contacts')
 @Controller()
@@ -71,33 +76,6 @@ export class ContactsController {
   })
   findAll() {
     return this.contactsService.findAll();
-  }
-
-  @Get(':id')
-  @ApiParam({
-    name: 'id',
-    type: 'string',
-    description: 'The ID must be a number',
-  })
-  @ApiOperation({ summary: 'Retrieve a contact by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Contact retrieved successfully.',
-    type: Contact,
-  })
-  @ApiNotFoundResponse({
-    description: 'Contact not found.',
-    content: {
-      'application/json': {
-        example: {
-          statusCode: 404,
-          message: 'Contact with id 1 not found',
-        },
-      },
-    },
-  })
-  findOne(@Param() params: IdParamDto) {
-    return this.contactsService.findOne(+params.id);
   }
 
   @Patch(':id')
@@ -163,5 +141,102 @@ export class ContactsController {
   })
   remove(@Param() params: IdParamDto) {
     return this.contactsService.remove(+params.id);
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search for a contact by email or phone number' })
+  @ApiResponse({
+    status: 200,
+    description: 'Contact(s) retrieved successfully.',
+    type: [Contact],
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error.',
+    content: {
+      'application/json': {
+        example: {
+          statusCode: 400,
+          message: 'Invalid query parameter.',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'No contact found.',
+    content: {
+      'application/json': {
+        example: {
+          statusCode: 404,
+          message: 'No contact found with the given criteria.',
+        },
+      },
+    },
+  })
+  search(@Query() searchContactDto: SearchContactDto) {
+    return this.contactsService.search(searchContactDto);
+  }
+
+  @Get('filter')
+  @ApiOperation({
+    summary: 'Retrieve all contacts from the same state or city',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Contact(s) retrieved successfully.',
+    type: [Contact],
+  })
+  @ApiBadRequestResponse({
+    description: 'Validation error.',
+    content: {
+      'application/json': {
+        example: {
+          statusCode: 400,
+          message: 'At least one of state or city is required.',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'No contacts found.',
+    content: {
+      'application/json': {
+        example: {
+          statusCode: 404,
+          message: 'No contacts found for the given state or city.',
+        },
+      },
+    },
+  })
+  filter(@Query() filterContactDto: FilterContactDto) {
+    return this.contactsService.filter(filterContactDto);
+  }
+
+  @Get(':id')
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    description: 'The ID must be a number',
+  })
+  @ApiOperation({ summary: 'Retrieve a contact by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Contact retrieved successfully.',
+    type: Contact,
+  })
+  @ApiNotFoundResponse({
+    description: 'Contact not found.',
+    content: {
+      'application/json': {
+        example: {
+          statusCode: 404,
+          message: 'Contact with id 1 not found',
+        },
+      },
+    },
+  })
+  findOne(@Param() params: IdParamDto) {
+    return this.contactsService.findOne(+params.id);
   }
 }

@@ -49,7 +49,11 @@ describe('ContactsService', () => {
         birthdate: '1990-01-01',
         workPhone: '1234567890',
         personalPhone: '0987654321',
-        address: '123 Main St',
+        street: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        postalCode: '10001',
+        country: 'USA',
       };
 
       const savedContact = {
@@ -77,7 +81,11 @@ describe('ContactsService', () => {
         birthdate: '1985-05-15',
         workPhone: '1112223333',
         personalPhone: '4445556666',
-        address: '456 Tech St',
+        street: '456 Tech St',
+        city: 'New York',
+        state: 'NY',
+        postalCode: '10001',
+        country: 'USA',
       };
 
       // Simulate a unique constraint violation (e.g., PostgreSQL error code '23505')
@@ -133,7 +141,6 @@ describe('ContactsService', () => {
       const updateContactDto = {
         company: 'Updated Company',
         email: 'updated.email@example.com',
-        address: '123 New Street',
       };
       const contact = { id: 1, ...updateContactDto } as Contact;
 

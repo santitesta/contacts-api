@@ -45,7 +45,11 @@ describe('ContactsController', () => {
         birthdate: '1990-01-01',
         workPhone: '1234567890',
         personalPhone: '0987654321',
-        address: '123 Main St',
+        street: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        postalCode: '10001',
+        country: 'USA',
       };
 
       const savedContact = {
@@ -108,7 +112,11 @@ describe('ContactsController', () => {
         birthdate: new Date('1990-01-01'), // Convert birthdate string to Date object
         workPhone: '1234567890',
         personalPhone: '0987654321',
-        address: '123 Main St',
+        street: '123 Main St',
+        city: 'New York',
+        state: 'NY',
+        postalCode: '10001',
+        country: 'USA',
       } as Contact;
 
       service.update.mockResolvedValue(updatedContact);

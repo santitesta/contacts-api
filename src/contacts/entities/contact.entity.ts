@@ -44,7 +44,24 @@ export class Contact {
   @Column()
   personalPhone: string;
 
-  @ApiProperty({ description: 'Full address', example: '123 Main St' })
+  // Address fields
+  @ApiProperty({ description: 'Street address', example: '123 Main St' })
   @Column()
-  address: string;
+  street: string;
+
+  @ApiProperty({ description: 'City', example: 'New York' })
+  @Column()
+  city: string;
+
+  @ApiProperty({ description: 'State', example: 'NY' })
+  @Column()
+  state: string;
+
+  @ApiProperty({ description: 'Postal code', example: '10001' })
+  @Column()
+  postalCode: string;
+
+  @ApiProperty({ description: 'Country', example: 'USA' })
+  @Column()
+  country: string;
 }
