@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -7,6 +7,7 @@ import { FindOptionsWhere, Repository } from 'typeorm';
 import { SearchContactDto } from './dto/search-contact.dto';
 import { FilterContactDto } from './dto/filter-contact.dto';
 import { getMonth } from 'date-fns';
+import { template } from 'lodash';
 
 @Injectable()
 export class ContactsService {
@@ -14,6 +15,8 @@ export class ContactsService {
     @InjectRepository(Contact)
     private readonly contactRepository: Repository<Contact>,
   ) {}
+
+  private readonly logger = new Logger(ContactsService.name);
 
   async create(createContactDto: CreateContactDto): Promise<Contact> {
     const contact = this.contactRepository.create(createContactDto);
@@ -111,5 +114,19 @@ export class ContactsService {
         month: currentMonth,
       })
       .getMany();
+  }
+
+  sendNotification(
+    messageTemplate: string,
+    contacts: { name: string; email: string; age: number }[],
+  ): void {
+    const compiledTemplate = template(messageTemplate);
+
+    contacts.forEach((contact) => {
+      const personalizedMessage = compiledTemplate(contact);
+
+      // Simulate sending email
+      this.logger.log(`Email sent to ${contact.email}: ${personalizedMessage}`);
+    });
   }
 }

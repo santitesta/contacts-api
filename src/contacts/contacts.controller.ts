@@ -17,6 +17,7 @@ import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import {
   ApiBadRequestResponse,
+  ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOperation,
@@ -32,6 +33,7 @@ import { FilterContactDto } from './dto/filter-contact.dto';
 import { CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { NotifyContactDto } from './dto/notify-contact-dto';
 
 @ApiTags('contacts')
 @Controller()
@@ -275,5 +277,19 @@ export class ContactsController {
   })
   findOne(@Param() params: IdParamDto) {
     return this.contactsService.findOne(+params.id);
+  }
+
+  @ApiOperation({
+    summary: 'Notify one or more contacts with a templated message',
+  })
+  @ApiBody({ type: NotifyContactDto })
+  @ApiResponse({ status: 200, description: 'Notifications sent successfully' })
+  @Post('notify')
+  notifyContacts(@Body() notifyContactsDto: NotifyContactDto): {
+    message: string;
+  } {
+    const { messageTemplate, contacts } = notifyContactsDto;
+    this.contactsService.sendNotification(messageTemplate, contacts);
+    return { message: 'Notifications sent successfully' };
   }
 }
