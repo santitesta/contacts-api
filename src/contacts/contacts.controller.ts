@@ -34,6 +34,7 @@ import { CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { NotifyContactDto } from './dto/notify-contact-dto';
+import { PaginatedContactsDto } from './dto/paginated-contact.dto';
 
 @ApiTags('contacts')
 @Controller()
@@ -250,6 +251,28 @@ export class ContactsController {
     await this.cacheManager.set('birthdays', birthdays, 3600);
 
     return birthdays;
+  }
+
+  @Get('paginated')
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'Cursor for pagination. Default is 1 (first page).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of contacts',
+    type: PaginatedContactsDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid page or cursor provided',
+  })
+  async getPaginatedContacts(
+    @Query('cursor') cursor?: number,
+  ): Promise<PaginatedContactsDto> {
+    const result = await this.contactsService.getContactsByPage(+cursor);
+    return result;
   }
 
   @Get(':id')
