@@ -10,12 +10,14 @@ import {
   NotFoundException,
   BadRequestException,
   Query,
+  Inject,
 } from '@nestjs/common';
 import { ContactsService } from './contacts.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import {
   ApiBadRequestResponse,
+  ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOperation,
@@ -28,11 +30,19 @@ import { Contact } from './entities/contact.entity';
 import { IdParamDto } from './dto/id-param.dto';
 import { SearchContactDto } from './dto/search-contact.dto';
 import { FilterContactDto } from './dto/filter-contact.dto';
+import { CacheKey, CacheTTL } from '@nestjs/cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { NotifyContactDto } from './dto/notify-contact-dto';
+import { PaginatedContactsDto } from './dto/paginated-contact.dto';
 
 @ApiTags('contacts')
 @Controller()
 export class ContactsController {
-  constructor(private readonly contactsService: ContactsService) {}
+  constructor(
+    private readonly contactsService: ContactsService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new contact' })
@@ -213,6 +223,58 @@ export class ContactsController {
     return this.contactsService.filter(filterContactDto);
   }
 
+  @Get('birthdays')
+  @ApiOperation({
+    summary: 'Get contacts with birthdays today or within the current month',
+    description:
+      'Returns a list of contacts whose birthdate is today or falls within the current month.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of contacts with upcoming or current month birthdays.',
+    type: [Contact],
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Internal server error',
+  })
+  @CacheKey('birthdays') // Set a specific key for caching
+  async getBirthdays(): Promise<Contact[]> {
+    const cachedData = await this.cacheManager.get<Contact[]>('birthdays');
+
+    if (cachedData?.length) {
+      return cachedData;
+    }
+
+    const birthdays = await this.contactsService.getBirthdaysThisMonth();
+
+    await this.cacheManager.set('birthdays', birthdays, 3600);
+
+    return birthdays;
+  }
+
+  @Get('paginated')
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'Cursor for pagination. Default is 1 (first page).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of contacts',
+    type: PaginatedContactsDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid page or cursor provided',
+  })
+  async getPaginatedContacts(
+    @Query('cursor') cursor?: number,
+  ): Promise<PaginatedContactsDto> {
+    const result = await this.contactsService.getContactsByPage(+cursor);
+    return result;
+  }
+
   @Get(':id')
   @ApiParam({
     name: 'id',
@@ -238,5 +300,19 @@ export class ContactsController {
   })
   findOne(@Param() params: IdParamDto) {
     return this.contactsService.findOne(+params.id);
+  }
+
+  @ApiOperation({
+    summary: 'Notify one or more contacts with a templated message',
+  })
+  @ApiBody({ type: NotifyContactDto })
+  @ApiResponse({ status: 200, description: 'Notifications sent successfully' })
+  @Post('notify')
+  notifyContacts(@Body() notifyContactsDto: NotifyContactDto): {
+    message: string;
+  } {
+    const { messageTemplate, contacts } = notifyContactsDto;
+    this.contactsService.sendNotification(messageTemplate, contacts);
+    return { message: 'Notifications sent successfully' };
   }
 }

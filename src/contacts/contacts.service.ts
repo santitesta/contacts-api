@@ -1,11 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Contact } from './entities/contact.entity';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { FindOptionsWhere, Like, Repository } from 'typeorm';
 import { SearchContactDto } from './dto/search-contact.dto';
 import { FilterContactDto } from './dto/filter-contact.dto';
+import { getMonth } from 'date-fns';
+import { template } from 'lodash';
+import { ADDRESS_BOOK_PAGES } from './constants/address-book.pages';
 
 @Injectable()
 export class ContactsService {
@@ -13,6 +22,8 @@ export class ContactsService {
     @InjectRepository(Contact)
     private readonly contactRepository: Repository<Contact>,
   ) {}
+
+  private readonly logger = new Logger(ContactsService.name);
 
   async create(createContactDto: CreateContactDto): Promise<Contact> {
     const contact = this.contactRepository.create(createContactDto);
@@ -98,5 +109,59 @@ export class ContactsService {
     }
 
     return results;
+  }
+
+  async getBirthdaysThisMonth(): Promise<Contact[]> {
+    const today = new Date();
+    const currentMonth = getMonth(today) + 1; // `getMonth` is 0-indexed, so add 1
+
+    return this.contactRepository
+      .createQueryBuilder('contact')
+      .where('EXTRACT(MONTH FROM contact.birthdate) = :month', {
+        month: currentMonth,
+      })
+      .getMany();
+  }
+
+  sendNotification(
+    messageTemplate: string,
+    contacts: { name: string; email: string; age: number }[],
+  ): void {
+    const compiledTemplate = template(messageTemplate);
+
+    contacts.forEach((contact) => {
+      const personalizedMessage = compiledTemplate(contact);
+
+      // Simulate sending email
+      this.logger.log(`Email sent to ${contact.email}: ${personalizedMessage}`);
+    });
+  }
+
+  async getContactsByPage(cursor?: number) {
+    const currentPage = cursor || 1;
+    const pageConfig = ADDRESS_BOOK_PAGES.find((p) => p.page === currentPage);
+
+    if (!pageConfig) {
+      throw new HttpException(
+        `Invalid page or cursor: ${cursor}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const rangeLetters = pageConfig.range.split('');
+
+    const contacts = await this.contactRepository.find({
+      where: rangeLetters.map((letter) => ({ name: Like(`${letter}%`) })),
+      order: { name: 'ASC' },
+    });
+
+    const nextCursor =
+      ADDRESS_BOOK_PAGES.find((p) => p.page === currentPage + 1)?.page || null;
+
+    return {
+      contacts,
+      nextCursor,
+      lastPage: ADDRESS_BOOK_PAGES.length,
+    };
   }
 }
