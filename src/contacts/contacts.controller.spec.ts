@@ -3,6 +3,7 @@ import { ContactsController } from './contacts.controller';
 import { ContactsService } from './contacts.service';
 import { Contact } from './entities/contact.entity';
 import { NotFoundException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 const mockContactsService = () => ({
   create: jest.fn(),
@@ -23,6 +24,14 @@ describe('ContactsController', () => {
         {
           provide: ContactsService,
           useFactory: mockContactsService,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+          },
         },
       ],
     }).compile();
